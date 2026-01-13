@@ -158,14 +158,14 @@ export const defaultCardData: CardData = {
   socialLinks: defaultSocialLinks,
   contactButtons: defaultContactButtons,
   stories: [
-    { id: '1', title: 'Latest Work', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop' },
-    { id: '2', title: 'Behind Scenes', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop' },
-    { id: '3', title: 'New Project', image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop' },
+    { id: '1', title: 'Latest Work', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop', content: 'Check out my latest design project!' },
+    { id: '2', title: 'Behind Scenes', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop', content: 'A peek into my creative process' },
+    { id: '3', title: 'New Project', image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', content: 'Coming soon!' },
   ],
   achievements: [
-    { id: '1', label: 'Followers', value: 12500, suffix: '+' },
-    { id: '2', label: 'Projects', value: 248 },
-    { id: '3', label: 'Awards', value: 15 },
+    { id: '1', label: 'Followers', value: 12500, suffix: '+', icon: '👥' },
+    { id: '2', label: 'Projects', value: 248, icon: '💼' },
+    { id: '3', label: 'Awards', value: 15, icon: '🏆' },
   ],
   badges: [
     { id: '1', text: 'Pro', color: '#6366f1' },

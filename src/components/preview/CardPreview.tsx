@@ -4,9 +4,15 @@ import { CardData } from '@/types/cardBuilder';
 import { socialPlatforms } from '@/config/socialPlatforms';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, Mail, Phone, Globe, ExternalLink } from 'lucide-react';
+import { User, Mail, Phone, Globe, ExternalLink, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
+import { ParticlesBackground } from './ParticlesBackground';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface CardPreviewProps {
   data: CardData;
@@ -39,11 +45,13 @@ function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: strin
 }
 
 export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
+  const [selectedStory, setSelectedStory] = useState<{ title: string; image: string; content?: string } | null>(null);
+  
   const sortedSections = [...data.sections]
     .filter(s => s.enabled)
     .sort((a, b) => a.order - b.order);
 
-  const getBackground = () => {
+  const getBackgroundStyle = () => {
     switch (data.background.type) {
       case 'solid':
         return { backgroundColor: data.background.solidColor };
@@ -51,6 +59,9 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
         return {
           background: `linear-gradient(${data.background.gradient.direction}deg, ${data.background.gradient.colors.join(', ')})`,
         };
+      case 'video':
+      case 'particles':
+        return { backgroundColor: data.background.solidColor || '#0f172a' };
       default:
         return {
           background: `linear-gradient(${data.background.gradient.direction}deg, ${data.background.gradient.colors.join(', ')})`,
@@ -83,7 +94,7 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
   const renderSection = (type: string) => {
     switch (type) {
       case 'bio':
-        return (
+        return data.bio ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,7 +102,7 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           >
             <p className="text-sm leading-relaxed opacity-90">{data.bio}</p>
           </motion.div>
-        );
+        ) : null;
 
       case 'social':
         return enabledSocialLinks.length > 0 ? (
@@ -162,11 +173,14 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           >
             <div className="grid grid-cols-3 gap-4 text-center">
               {data.achievements.map((achievement) => (
-                <div key={achievement.id}>
+                <div key={achievement.id} className="space-y-1">
+                  {achievement.icon && (
+                    <div className="text-2xl mb-1">{achievement.icon}</div>
+                  )}
                   <div className="text-2xl font-bold" style={{ color: data.accentColor }}>
                     <AnimatedCounter value={achievement.value} suffix={achievement.suffix} />
                   </div>
-                  <div className="text-xs opacity-70 mt-1">{achievement.label}</div>
+                  <div className="text-xs opacity-70">{achievement.label}</div>
                 </div>
               ))}
             </div>
@@ -182,19 +196,28 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           >
             <div className="flex gap-3">
               {data.stories.map((story) => (
-                <div key={story.id} className="flex flex-col items-center gap-2 shrink-0">
+                <button 
+                  key={story.id} 
+                  className="flex flex-col items-center gap-2 shrink-0 group"
+                  onClick={() => setSelectedStory(story)}
+                >
                   <div 
-                    className="h-16 w-16 rounded-full p-0.5"
+                    className="h-16 w-16 rounded-full p-0.5 transition-transform group-hover:scale-105"
                     style={{ background: `linear-gradient(135deg, ${data.accentColor}, #ec4899)` }}
                   >
-                    <img
-                      src={story.image}
-                      alt={story.title}
-                      className="h-full w-full rounded-full object-cover border-2 border-background"
-                    />
+                    <div className="h-full w-full rounded-full overflow-hidden border-2 border-background relative">
+                      <img
+                        src={story.image}
+                        alt={story.title}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Play className="h-4 w-4 text-white fill-white" />
+                      </div>
+                    </div>
                   </div>
                   <span className="text-xs opacity-70 max-w-[60px] truncate">{story.title}</span>
-                </div>
+                </button>
               ))}
             </div>
           </motion.div>
@@ -228,79 +251,112 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
   };
 
   return (
-    <div 
-      className={cn(
-        "relative min-h-full overflow-hidden",
-        data.themeMode === 'dark' ? 'dark' : ''
-      )}
-      style={getBackground()}
-    >
-      {/* Video Background */}
-      {data.background.type === 'video' && data.background.videoUrl && (
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src={data.background.videoUrl} type="video/mp4" />
-        </video>
-      )}
+    <>
+      <div 
+        className={cn(
+          "relative min-h-full overflow-hidden",
+          data.themeMode === 'dark' ? 'dark' : ''
+        )}
+        style={getBackgroundStyle()}
+      >
+        {/* Video Background */}
+        {data.background.type === 'video' && data.background.videoUrl && (
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+            key={data.background.videoUrl}
+          >
+            <source src={data.background.videoUrl} type="video/mp4" />
+          </video>
+        )}
 
-      {/* Content */}
-      <div className={cn(
-        "relative z-10 p-6 space-y-5 min-h-full",
-        data.themeMode === 'dark' ? 'text-white' : 'text-gray-900'
-      )}>
-        {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center space-y-4 pt-4"
-        >
-          <div className="relative inline-block">
-            <div 
-              className="absolute inset-0 rounded-full blur-xl opacity-50"
-              style={{ backgroundColor: data.accentColor }}
-            />
-            <Avatar className="h-24 w-24 border-4 border-white/20 relative">
-              <AvatarImage src={data.profileImage || undefined} />
-              <AvatarFallback className="bg-white/10 text-2xl">
-                <User className="h-10 w-10" />
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">{data.name}</h1>
-            <p className="text-sm opacity-70 mt-1">{data.title}</p>
-          </div>
-        </motion.div>
+        {/* Particles Background */}
+        {data.background.type === 'particles' && (
+          <ParticlesBackground 
+            preset={data.background.particlePreset} 
+            baseColor={data.accentColor}
+          />
+        )}
 
-        {/* Sections */}
-        {sortedSections.map((section, i) => (
-          <div key={section.id} style={{ animationDelay: `${i * 0.1}s` }}>
-            {renderSection(section.type)}
-          </div>
-        ))}
+        {/* Content */}
+        <div className={cn(
+          "relative z-10 p-6 space-y-5 min-h-full",
+          data.themeMode === 'dark' ? 'text-white' : 'text-gray-900'
+        )}>
+          {/* Header */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center space-y-4 pt-4"
+          >
+            <div className="relative inline-block">
+              <div 
+                className="absolute inset-0 rounded-full blur-xl opacity-50"
+                style={{ backgroundColor: data.accentColor }}
+              />
+              <Avatar className="h-24 w-24 border-4 border-white/20 relative">
+                <AvatarImage src={data.profileImage || undefined} />
+                <AvatarFallback className="bg-white/10 text-2xl">
+                  <User className="h-10 w-10" />
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{data.name || 'Your Name'}</h1>
+              <p className="text-sm opacity-70 mt-1">{data.title || 'Your Title'}</p>
+            </div>
+          </motion.div>
 
-        {/* QR Code */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-card p-4 flex flex-col items-center gap-3"
-        >
-          <div className="p-2 bg-white rounded-xl">
-            <QRCodeSVG 
-              value={demoUrl} 
-              size={80} 
-              fgColor={data.accentColor}
-              level="M"
-            />
-          </div>
-          <p className="text-xs opacity-50">Scan to connect</p>
-        </motion.div>
+          {/* Sections */}
+          {sortedSections.map((section, i) => (
+            <div key={section.id} style={{ animationDelay: `${i * 0.1}s` }}>
+              {renderSection(section.type)}
+            </div>
+          ))}
+
+          {/* QR Code */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card p-4 flex flex-col items-center gap-3"
+          >
+            <div className="p-2 bg-white rounded-xl">
+              <QRCodeSVG 
+                value={demoUrl} 
+                size={80} 
+                fgColor={data.accentColor}
+                level="M"
+              />
+            </div>
+            <p className="text-xs opacity-50">Scan to connect</p>
+          </motion.div>
+        </div>
       </div>
-    </div>
+
+      {/* Story Modal */}
+      <Dialog open={!!selectedStory} onOpenChange={() => setSelectedStory(null)}>
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-black border-0">
+          <DialogTitle className="sr-only">Story: {selectedStory?.title}</DialogTitle>
+          {selectedStory && (
+            <div className="relative aspect-[9/16] max-h-[80vh]">
+              <img 
+                src={selectedStory.image} 
+                alt={selectedStory.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                <h3 className="text-white font-semibold">{selectedStory.title}</h3>
+                {selectedStory.content && (
+                  <p className="text-white/80 text-sm mt-1">{selectedStory.content}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
