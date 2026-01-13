@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { BackgroundConfig, BackgroundType, ParticlePreset } from '@/types/cardBuilder';
 import { gradientPresets, solidColorPresets, videoPresets } from '@/config/socialPlatforms';
-import { Palette, Sparkles, Video, Circle, Check } from 'lucide-react';
+import { Palette, Sparkles, Video, Circle, Check, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BackgroundEditorProps {
@@ -15,7 +15,7 @@ interface BackgroundEditorProps {
 }
 
 const particlePresets: { value: ParticlePreset; label: string }[] = [
-  { value: 'default', label: 'Default' },
+  { value: 'default', label: 'Connected' },
   { value: 'snow', label: 'Snow' },
   { value: 'bubbles', label: 'Bubbles' },
   { value: 'stars', label: 'Stars' },
@@ -23,6 +23,19 @@ const particlePresets: { value: ParticlePreset; label: string }[] = [
 ];
 
 export function BackgroundEditor({ config, onUpdate }: BackgroundEditorProps) {
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUpdate({ videoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Tabs 
@@ -138,8 +151,45 @@ export function BackgroundEditor({ config, onUpdate }: BackgroundEditorProps) {
 
         {/* Video */}
         <TabsContent value="video" className="space-y-4 pt-4">
+          {/* Video Upload */}
           <div className="space-y-3">
-            <Label>Video Presets</Label>
+            <Label>Upload Video</Label>
+            <input
+              type="file"
+              accept="video/*"
+              ref={videoInputRef}
+              onChange={handleVideoUpload}
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              className="w-full h-20 border-dashed"
+              onClick={() => videoInputRef.current?.click()}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-6 w-6" />
+                <span className="text-sm">Click to upload video</span>
+              </div>
+            </Button>
+            
+            {config.videoUrl && config.videoUrl.startsWith('data:') && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted">
+                <Video className="h-4 w-4 text-primary" />
+                <span className="text-xs text-muted-foreground flex-1">Custom video uploaded</span>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-6 text-xs"
+                  onClick={() => onUpdate({ videoUrl: '' })}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <Label>Or choose preset</Label>
             <div className="space-y-2">
               {videoPresets.map((preset) => (
                 <Button
@@ -159,7 +209,7 @@ export function BackgroundEditor({ config, onUpdate }: BackgroundEditorProps) {
             <Label htmlFor="video-url">Or paste video URL</Label>
             <Input
               id="video-url"
-              value={config.videoUrl}
+              value={config.videoUrl?.startsWith('data:') ? '' : config.videoUrl}
               onChange={(e) => onUpdate({ videoUrl: e.target.value })}
               placeholder="https://example.com/video.mp4"
             />

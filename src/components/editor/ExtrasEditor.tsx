@@ -4,13 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Story, Achievement, Badge } from '@/types/cardBuilder';
-import { Plus, Trash2, ImageIcon, Trophy, Award, X, Upload, Smile } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, Trophy, Award, X, Upload, Smile, Video, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group';
 
 interface ExtrasEditorProps {
   stories: Story[];
@@ -52,13 +56,15 @@ export function ExtrasEditor({
 }: ExtrasEditorProps) {
   const [newBadgeText, setNewBadgeText] = useState('');
   const [newBadgeColor, setNewBadgeColor] = useState(badgeColors[0]);
-  const storyInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const storyImageRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const storyVideoRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const handleAddStory = () => {
     onAddStory({
       id: Date.now().toString(),
       title: 'New Story',
       image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop',
+      mediaType: 'image',
       content: '',
     });
   };
@@ -68,7 +74,25 @@ export function ExtrasEditor({
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        onUpdateStory(storyId, { image: reader.result as string });
+        onUpdateStory(storyId, { 
+          image: reader.result as string,
+          mediaType: 'image',
+          video: undefined,
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleStoryVideoUpload = (storyId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUpdateStory(storyId, { 
+          video: reader.result as string,
+          mediaType: 'video',
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -114,26 +138,37 @@ export function ExtrasEditor({
           {stories.map((story) => (
             <div key={story.id} className="p-3 rounded-lg border bg-card space-y-3">
               <div className="flex items-start gap-3">
-                {/* Story Image with Upload */}
-                <div className="relative group">
-                  <img 
-                    src={story.image} 
-                    alt={story.title}
-                    className="h-14 w-14 rounded-full object-cover border-2 border-border"
-                  />
+                {/* Story Media Preview */}
+                <div className="relative group shrink-0">
+                  {story.mediaType === 'video' && story.video ? (
+                    <video 
+                      src={story.video}
+                      className="h-14 w-14 rounded-full object-cover border-2 border-border"
+                      muted
+                    />
+                  ) : (
+                    <img 
+                      src={story.image} 
+                      alt={story.title}
+                      className="h-14 w-14 rounded-full object-cover border-2 border-border"
+                    />
+                  )}
+                  
+                  {/* Hidden file inputs */}
                   <input
                     type="file"
                     accept="image/*"
-                    ref={(el) => { storyInputRefs.current[story.id] = el; }}
+                    ref={(el) => { storyImageRefs.current[story.id] = el; }}
                     onChange={(e) => handleStoryImageUpload(story.id, e)}
                     className="hidden"
                   />
-                  <button
-                    onClick={() => storyInputRefs.current[story.id]?.click()}
-                    className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Upload className="h-4 w-4 text-white" />
-                  </button>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    ref={(el) => { storyVideoRefs.current[story.id] = el; }}
+                    onChange={(e) => handleStoryVideoUpload(story.id, e)}
+                    className="hidden"
+                  />
                 </div>
                 
                 <div className="flex-1 space-y-2">
@@ -161,15 +196,52 @@ export function ExtrasEditor({
                 </Button>
               </div>
               
-              {/* Image URL input */}
-              <div className="flex gap-2">
-                <Input
-                  value={story.image}
-                  onChange={(e) => onUpdateStory(story.id, { image: e.target.value })}
-                  className="h-8 text-xs"
-                  placeholder="Or paste image URL..."
-                />
+              {/* Media Type Toggle & Upload */}
+              <div className="flex gap-2 items-center">
+                <ToggleGroup 
+                  type="single" 
+                  value={story.mediaType}
+                  onValueChange={(v) => v && onUpdateStory(story.id, { mediaType: v as 'image' | 'video' })}
+                  className="shrink-0"
+                >
+                  <ToggleGroupItem value="image" size="sm" className="h-8 px-2">
+                    <Image className="h-3 w-3 mr-1" />
+                    Image
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="video" size="sm" className="h-8 px-2">
+                    <Video className="h-3 w-3 mr-1" />
+                    Video
+                  </ToggleGroupItem>
+                </ToggleGroup>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => {
+                    if (story.mediaType === 'video') {
+                      storyVideoRefs.current[story.id]?.click();
+                    } else {
+                      storyImageRefs.current[story.id]?.click();
+                    }
+                  }}
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Upload {story.mediaType === 'video' ? 'Video' : 'Image'}
+                </Button>
               </div>
+              
+              {/* URL input */}
+              <Input
+                value={story.mediaType === 'video' ? (story.video || '') : story.image}
+                onChange={(e) => onUpdateStory(story.id, 
+                  story.mediaType === 'video' 
+                    ? { video: e.target.value }
+                    : { image: e.target.value }
+                )}
+                className="h-8 text-xs"
+                placeholder={`Or paste ${story.mediaType} URL...`}
+              />
             </div>
           ))}
         </div>

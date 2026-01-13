@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CardData } from '@/types/cardBuilder';
+import { CardData, Story } from '@/types/cardBuilder';
 import { socialPlatforms } from '@/config/socialPlatforms';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: strin
 }
 
 export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
-  const [selectedStory, setSelectedStory] = useState<{ title: string; image: string; content?: string } | null>(null);
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   
   const sortedSections = [...data.sections]
     .filter(s => s.enabled)
@@ -206,11 +206,19 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
                     style={{ background: `linear-gradient(135deg, ${data.accentColor}, #ec4899)` }}
                   >
                     <div className="h-full w-full rounded-full overflow-hidden border-2 border-background relative">
-                      <img
-                        src={story.image}
-                        alt={story.title}
-                        className="h-full w-full object-cover"
-                      />
+                      {story.mediaType === 'video' && story.video ? (
+                        <video
+                          src={story.video}
+                          className="h-full w-full object-cover"
+                          muted
+                        />
+                      ) : (
+                        <img
+                          src={story.image}
+                          alt={story.title}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Play className="h-4 w-4 text-white fill-white" />
                       </div>
@@ -342,12 +350,23 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           <DialogTitle className="sr-only">Story: {selectedStory?.title}</DialogTitle>
           {selectedStory && (
             <div className="relative aspect-[9/16] max-h-[80vh]">
-              <img 
-                src={selectedStory.image} 
-                alt={selectedStory.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              {selectedStory.mediaType === 'video' && selectedStory.video ? (
+                <video 
+                  src={selectedStory.video}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  controls
+                  playsInline
+                />
+              ) : (
+                <img 
+                  src={selectedStory.image} 
+                  alt={selectedStory.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
+              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                 <h3 className="text-white font-semibold">{selectedStory.title}</h3>
                 {selectedStory.content && (
                   <p className="text-white/80 text-sm mt-1">{selectedStory.content}</p>

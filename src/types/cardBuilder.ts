@@ -45,6 +45,8 @@ export interface Story {
   id: string;
   title: string;
   image: string;
+  video?: string;
+  mediaType: 'image' | 'video';
   content?: string;
 }
 
@@ -158,9 +160,9 @@ export const defaultCardData: CardData = {
   socialLinks: defaultSocialLinks,
   contactButtons: defaultContactButtons,
   stories: [
-    { id: '1', title: 'Latest Work', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop', content: 'Check out my latest design project!' },
-    { id: '2', title: 'Behind Scenes', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop', content: 'A peek into my creative process' },
-    { id: '3', title: 'New Project', image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', content: 'Coming soon!' },
+    { id: '1', title: 'Latest Work', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&h=200&fit=crop', mediaType: 'image', content: 'Check out my latest design project!' },
+    { id: '2', title: 'Behind Scenes', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop', mediaType: 'image', content: 'A peek into my creative process' },
+    { id: '3', title: 'New Project', image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=200&h=200&fit=crop', mediaType: 'image', content: 'Coming soon!' },
   ],
   achievements: [
     { id: '1', label: 'Followers', value: 12500, suffix: '+', icon: '👥' },
