@@ -4,10 +4,11 @@ import { CardData, Story } from '@/types/cardBuilder';
 import { socialPlatforms } from '@/config/socialPlatforms';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, Mail, Phone, Globe, ExternalLink, Play } from 'lucide-react';
+import { User, Mail, Phone, Globe, ExternalLink, Play, X, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
 import { ParticlesBackground } from './ParticlesBackground';
+import { BentoGrid } from '@/components/layouts/BentoGrid';
 import {
   Dialog,
   DialogContent,
@@ -19,15 +20,16 @@ interface CardPreviewProps {
   isMobile?: boolean;
 }
 
+
 function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: string }) {
   const [count, setCount] = useState(0);
-  
+
   useEffect(() => {
     const duration = 1500;
     const steps = 60;
     const increment = value / steps;
     let current = 0;
-    
+
     const timer = setInterval(() => {
       current += increment;
       if (current >= value) {
@@ -37,16 +39,92 @@ function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: strin
         setCount(Math.floor(current));
       }
     }, duration / steps);
-    
+
     return () => clearInterval(timer);
   }, [value]);
-  
+
   return <span>{count.toLocaleString()}{suffix}</span>;
+}
+
+function StoryMediaViewer({ story }: { story: Story }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // Reset state when story changes
+  useEffect(() => {
+    setLoading(true);
+    setError(false);
+  }, [story.id, story.mediaType, story.video, story.image]);
+
+  const isVideo = story.mediaType === 'video' && !!story.video;
+  const src = isVideo ? story.video : story.image;
+
+  if (!src) {
+    return (
+      <div className="flex flex-col items-center justify-center text-white/50">
+        <AlertCircle className="h-8 w-8 mb-2 opacity-50" />
+        <p className="text-sm">No media source</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-30">
+          <Loader2 className="h-8 w-8 animate-spin text-white/50" />
+        </div>
+      )}
+
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 text-red-400">
+          <AlertCircle className="h-10 w-10 mb-2" />
+          <p className="text-sm">Failed to load media</p>
+        </div>
+      )}
+
+      {/* Blurred Background */}
+      {!error && (
+        <div className="absolute inset-0 opacity-30 blur-3xl scale-110 pointer-events-none">
+          {isVideo ? (
+            <video src={src} className="w-full h-full object-cover" muted />
+          ) : (
+            <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url(${src})` }} />
+          )}
+        </div>
+      )}
+
+      {/* Main Content */}
+      {isVideo ? (
+        <video
+          src={src}
+          className={cn("w-full h-full object-contain relative z-20 transition-opacity duration-300", loading ? 'opacity-0' : 'opacity-100')}
+          autoPlay
+          loop
+          playsInline
+          onLoadedData={() => setLoading(false)}
+          onError={() => { setLoading(false); setError(true); }}
+          onClick={(e) => {
+            const video = e.currentTarget;
+            video.paused ? video.play() : video.pause();
+          }}
+        />
+      ) : (
+        <img
+          src={src}
+          alt={story.title}
+          className={cn("w-full h-full object-contain relative z-20 transition-opacity duration-300", loading ? 'opacity-0' : 'opacity-100')}
+          onLoad={() => setLoading(false)}
+          onError={() => { setLoading(false); setError(true); }}
+        />
+      )}
+    </>
+  );
 }
 
 export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
-  
+
   const sortedSections = [...data.sections]
     .filter(s => s.enabled)
     .sort((a, b) => a.order - b.order);
@@ -81,15 +159,15 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
 
   const getIconShape = () => {
     switch (data.iconStyle) {
+      case 'rounded': return 'rounded-full';
       case 'square': return 'rounded-lg';
-      case 'pill': return 'rounded-full px-4';
-      default: return 'rounded-xl';
+      case 'pill': return 'rounded-full w-auto px-6';
+      default: return 'rounded-full';
     }
   };
 
   const enabledSocialLinks = data.socialLinks.filter(l => l.enabled);
   const enabledContactButtons = data.contactButtons.filter(b => b.enabled);
-  const demoUrl = 'https://mycard.link/demo123';
 
   const renderSection = (type: string) => {
     switch (type) {
@@ -126,7 +204,7 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
                       getIconShape(),
                       getIconClass()
                     )}
-                    style={{ 
+                    style={{
                       backgroundColor: `${platform.color}20`,
                       color: platform.color,
                     }}
@@ -196,12 +274,12 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           >
             <div className="flex gap-3">
               {data.stories.map((story) => (
-                <button 
-                  key={story.id} 
+                <button
+                  key={story.id}
                   className="flex flex-col items-center gap-2 shrink-0 group"
                   onClick={() => setSelectedStory(story)}
                 >
-                  <div 
+                  <div
                     className="h-16 w-16 rounded-full p-0.5 transition-transform group-hover:scale-105"
                     style={{ background: `linear-gradient(135deg, ${data.accentColor}, #ec4899)` }}
                   >
@@ -242,7 +320,7 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
               <span
                 key={badge.id}
                 className="px-3 py-1 rounded-full text-xs font-medium text-white badge-float"
-                style={{ 
+                style={{
                   backgroundColor: badge.color,
                   animationDelay: `${i * 0.2}s`,
                 }}
@@ -260,12 +338,15 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
 
   return (
     <>
-      <div 
+      <div
         className={cn(
           "relative min-h-full overflow-hidden",
           data.themeMode === 'dark' ? 'dark' : ''
         )}
-        style={getBackgroundStyle()}
+        style={{
+          ...getBackgroundStyle(),
+          fontFamily: data.fontFamily,
+        }}
       >
         {/* Video Background */}
         {data.background.type === 'video' && data.background.videoUrl && (
@@ -283,8 +364,8 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
 
         {/* Particles Background */}
         {data.background.type === 'particles' && (
-          <ParticlesBackground 
-            preset={data.background.particlePreset} 
+          <ParticlesBackground
+            preset={data.background.particlePreset}
             baseColor={data.accentColor}
           />
         )}
@@ -295,35 +376,54 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
           data.themeMode === 'dark' ? 'text-white' : 'text-gray-900'
         )}>
           {/* Header */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center space-y-4 pt-4"
+            className="text-center space-y-4 pt-4 relative"
           >
-            <div className="relative inline-block">
-              <div 
+            {/* Cover Photo */}
+            {data.coverImage && (
+              <div className="absolute top-0 left-0 right-0 h-32 rounded-t-3xl overflow-hidden -mx-6 -mt-6 z-0">
+                <img src={data.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
+              </div>
+            )}
+
+            {/* Spacer for Cover Photo */}
+            {data.coverImage && <div className="h-10" />}
+
+            <div className="relative inline-block z-10">
+              <div
                 className="absolute inset-0 rounded-full blur-xl opacity-50"
                 style={{ backgroundColor: data.accentColor }}
               />
-              <Avatar className="h-24 w-24 border-4 border-white/20 relative">
-                <AvatarImage src={data.profileImage || undefined} />
+              <Avatar className={cn(
+                "h-24 w-24 border-4 relative",
+                data.coverImage ? "border-background" : "border-white/20"
+              )}>
+                <AvatarImage src={data.profileImage || undefined} className="object-cover" />
                 <AvatarFallback className="bg-white/10 text-2xl">
                   <User className="h-10 w-10" />
                 </AvatarFallback>
               </Avatar>
             </div>
-            <div>
+            <div className="relative z-10">
               <h1 className="text-2xl font-bold">{data.name || 'Your Name'}</h1>
               <p className="text-sm opacity-70 mt-1">{data.title || 'Your Title'}</p>
             </div>
           </motion.div>
 
           {/* Sections */}
-          {sortedSections.map((section, i) => (
-            <div key={section.id} style={{ animationDelay: `${i * 0.1}s` }}>
-              {renderSection(section.type)}
+          {data.layout === 'bento' ? (
+            <div className="h-full overflow-y-auto">
+              <BentoGrid data={data} onStoryClick={setSelectedStory} />
             </div>
-          ))}
+          ) : (
+            sortedSections.map((section, i) => (
+              <div key={section.id} style={{ animationDelay: `${i * 0.1}s` }}>
+                {renderSection(section.type)}
+              </div>
+            )))}
 
           {/* QR Code */}
           <motion.div
@@ -332,9 +432,9 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
             className="glass-card p-4 flex flex-col items-center gap-3"
           >
             <div className="p-2 bg-white rounded-xl">
-              <QRCodeSVG 
-                value={demoUrl} 
-                size={80} 
+              <QRCodeSVG
+                value={window.location.href}
+                size={80}
                 fgColor={data.accentColor}
                 level="M"
               />
@@ -345,31 +445,26 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
       </div>
 
       {/* Story Modal */}
+      {/* Immersive Story Modal */}
       <Dialog open={!!selectedStory} onOpenChange={() => setSelectedStory(null)}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-black border-0">
+        <DialogContent className="fixed z-[60] left-0 top-0 w-screen h-screen max-w-none m-0 p-0 border-none bg-black flex flex-col items-center justify-center translate-x-0 translate-y-0 data-[state=open]:slide-in-from-bottom-0 data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100 rounded-none">
           <DialogTitle className="sr-only">Story: {selectedStory?.title}</DialogTitle>
+          <button
+            onClick={() => setSelectedStory(null)}
+            className="absolute top-6 right-6 z-50 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
           {selectedStory && (
-            <div className="relative aspect-[9/16] max-h-[80vh]">
-              {selectedStory.mediaType === 'video' && selectedStory.video ? (
-                <video 
-                  src={selectedStory.video}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  loop
-                  controls
-                  playsInline
-                />
-              ) : (
-                <img 
-                  src={selectedStory.image} 
-                  alt={selectedStory.title}
-                  className="w-full h-full object-cover"
-                />
-              )}
-              <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
-                <h3 className="text-white font-semibold">{selectedStory.title}</h3>
+            <div className="relative w-full h-full flex items-center justify-center bg-zinc-900">
+              <StoryMediaViewer story={selectedStory} />
+
+              {/* Story Overlay Content */}
+              <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20 pointer-events-none z-20">
+                <h3 className="text-white text-lg font-bold drop-shadow-md">{selectedStory.title}</h3>
                 {selectedStory.content && (
-                  <p className="text-white/80 text-sm mt-1">{selectedStory.content}</p>
+                  <p className="text-white/90 text-sm mt-2 leading-relaxed drop-shadow-md">{selectedStory.content}</p>
                 )}
               </div>
             </div>

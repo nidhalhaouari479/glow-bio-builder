@@ -15,7 +15,7 @@ export interface SocialLink {
   enabled: boolean;
 }
 
-export type SocialPlatform = 
+export type SocialPlatform =
   | 'facebook'
   | 'instagram'
   | 'linkedin'
@@ -91,6 +91,7 @@ export interface CardData {
   title: string;
   bio: string;
   profileImage: string | null;
+  coverImage: string | null;
   background: BackgroundConfig;
   themeMode: ThemeMode;
   accentColor: string;
@@ -103,6 +104,8 @@ export interface CardData {
   sections: Section[];
   iconAnimation: IconAnimation;
   iconStyle: IconStyle;
+  layout: 'list' | 'bento';
+  customDomain?: string | null;
 }
 
 export const defaultSocialLinks: SocialLink[] = [
@@ -144,6 +147,7 @@ export const defaultCardData: CardData = {
   title: 'Digital Creator & Designer',
   bio: 'Passionate about creating beautiful digital experiences. Let\'s connect and build something amazing together! ✨',
   profileImage: null,
+  coverImage: null,
   background: {
     type: 'gradient',
     solidColor: '#6366f1',
@@ -177,4 +181,6 @@ export const defaultCardData: CardData = {
   sections: defaultSections,
   iconAnimation: 'lift',
   iconStyle: 'rounded',
+  layout: 'list',
+  customDomain: null,
 };

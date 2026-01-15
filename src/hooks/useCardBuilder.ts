@@ -1,24 +1,131 @@
-import { useState, useCallback } from 'react';
-import { 
-  CardData, 
-  defaultCardData, 
-  SocialLink, 
-  ContactButton, 
-  Story, 
-  Achievement, 
-  Badge, 
+import { useState, useCallback, useEffect } from 'react';
+import {
+  CardData,
+  defaultCardData,
+  SocialLink,
+  ContactButton,
+  Story,
+  Achievement,
+  Badge,
   Section,
   BackgroundConfig,
   ThemeMode,
   IconAnimation,
   IconStyle,
 } from '@/types/cardBuilder';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export function useCardBuilder() {
+  const { user } = useAuth();
   const [cardData, setCardData] = useState<CardData>(defaultCardData);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch data on load
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+
+        if (data) {
+          // Merge fetched data with default structure to ensure all fields exist
+          setCardData(prev => ({
+            ...prev,
+            name: data.full_name || prev.name,
+            bio: data.bio || prev.bio,
+            profileImage: data.avatar_url || prev.profileImage,
+            // Parse JSON fields safely
+            ...data.theme_config, // Assuming theme_config helper stores the rest of the json structure
+          }));
+
+          // For now, let's assume if we saved it as a big JSON blob it would be easier,
+          // but the schema has specific columns. Let's adjust to just save everything 
+          // in `theme_config` or dedicated columns for simplicity given the complex object.
+          // Re-reading schema: `theme_config` is jsonb.
+          // Let's store the entire CardData (minus id/user_id) in `theme_config` for MVP speed?
+          // Or map fields. The schema had: username, full_name, avatar_url, bio, theme_config.
+          // We can map:
+          // name -> full_name
+          // bio -> bio
+          // profileImage -> avatar_url
+          // EVERYTHING ELSE -> theme_config
+
+          if (data.theme_config) {
+            setCardData(prev => ({
+              ...prev,
+              name: data.full_name || prev.name,
+              bio: data.bio || prev.bio,
+              profileImage: data.avatar_url || prev.profileImage,
+              customDomain: data.custom_domain || prev.customDomain,
+              ...(data.theme_config as Partial<CardData>) // Spread the rest
+            }));
+          } else {
+            setCardData(prev => ({
+              ...prev,
+              name: data.full_name || prev.name,
+              bio: data.bio || prev.bio,
+              profileImage: data.avatar_url || prev.profileImage,
+              customDomain: data.custom_domain || prev.customDomain,
+            }));
+          }
+        }
+      } catch (error: any) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  const saveProfile = async () => {
+    if (!user) {
+      toast.error('You must be logged in to save');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { name, bio, profileImage, customDomain, ...rest } = cardData;
+
+      const updates = {
+        id: user.id,
+        full_name: name,
+        bio: bio,
+        avatar_url: profileImage,
+        custom_domain: customDomain,
+        theme_config: rest,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(updates);
+
+      if (error) throw error;
+      toast.success('Profile saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      toast.error('Failed to save profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updateField = useCallback(<K extends keyof CardData>(
-    field: K, 
+    field: K,
     value: CardData[K]
   ) => {
     setCardData(prev => ({ ...prev, [field]: value }));
@@ -149,6 +256,8 @@ export function useCardBuilder() {
 
   return {
     cardData,
+    loading,
+    saveProfile,
     updateField,
     updateBackground,
     updateSocialLink,
@@ -168,5 +277,8 @@ export function useCardBuilder() {
     setIconAnimation,
     setIconStyle,
     setProfileImage,
+    setCoverImage: useCallback((image: string | null) => {
+      updateField('coverImage', image);
+    }, [updateField]),
   };
 }

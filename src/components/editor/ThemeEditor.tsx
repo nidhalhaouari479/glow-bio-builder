@@ -4,13 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CardData, ThemeMode, IconAnimation, IconStyle } from '@/types/cardBuilder';
 import { fontFamilies } from '@/config/socialPlatforms';
-import { Sun, Moon, Monitor, Sparkles, Zap, MousePointer, Hand, Circle, Square, RectangleHorizontal } from 'lucide-react';
+import { Sun, Moon, Monitor, Sparkles, Zap, MousePointer, Hand, Circle, Square, RectangleHorizontal, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ThemeEditorProps {
   themeMode: ThemeMode;
   iconAnimation: IconAnimation;
   iconStyle: IconStyle;
+  layout: 'list' | 'bento';
   fontFamily: string;
   accentColor: string;
   onUpdate: <K extends keyof CardData>(field: K, value: CardData[K]) => void;
@@ -40,16 +41,40 @@ const accentColors = [
   '#f97316', '#22c55e', '#06b6d4', '#3b82f6',
 ];
 
-export function ThemeEditor({ 
-  themeMode, 
-  iconAnimation, 
-  iconStyle, 
+export function ThemeEditor({
+  themeMode,
+  iconAnimation,
+  iconStyle,
+  layout,
   fontFamily,
   accentColor,
-  onUpdate 
+  onUpdate
 }: ThemeEditorProps) {
   return (
     <div className="space-y-6">
+      {/* Layout Style */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Layout Style</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={themeMode === 'light' /* hack for visual consistency when used as toggles */ && (layout === 'list' || !layout) ? "default" : "outline"}
+            className={cn("flex items-center gap-2", (!layout || layout === 'list') && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'list')}
+          >
+            <Layers className="h-4 w-4" />
+            Standard List
+          </Button>
+          <Button
+            variant="outline"
+            className={cn("flex items-center gap-2", layout === 'bento' && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'bento')}
+          >
+            <Monitor className="h-4 w-4" />
+            Bento Grid
+          </Button>
+        </div>
+      </div>
+
       {/* Theme Mode */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">Theme Mode</Label>
@@ -80,8 +105,8 @@ export function ThemeEditor({
               key={color}
               className={cn(
                 "h-8 w-8 rounded-full border-2 transition-all hover:scale-110",
-                accentColor === color 
-                  ? "border-foreground ring-2 ring-offset-2 ring-offset-background" 
+                accentColor === color
+                  ? "border-foreground ring-2 ring-offset-2 ring-offset-background"
                   : "border-transparent"
               )}
               style={{ backgroundColor: color, boxShadow: accentColor === color ? `0 0 12px ${color}` : 'none' }}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCardBuilder } from '@/hooks/useCardBuilder';
+import { useAuth } from '@/contexts/AuthContext';
 import { CardPreview } from '@/components/preview/CardPreview';
 import { ProfileEditor } from '@/components/editor/ProfileEditor';
 import { BackgroundEditor } from '@/components/editor/BackgroundEditor';
@@ -9,19 +10,20 @@ import { SectionOrderEditor } from '@/components/editor/SectionOrderEditor';
 import { ThemeEditor } from '@/components/editor/ThemeEditor';
 import { ExtrasEditor } from '@/components/editor/ExtrasEditor';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Collapsible, 
-  CollapsibleContent, 
-  CollapsibleTrigger 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
 } from '@/components/ui/collapsible';
-import { 
-  User, 
-  Palette, 
-  Share2, 
-  Phone, 
-  Layers, 
-  Sparkles, 
+import {
+  User,
+  Palette,
+  Share2,
+  Phone,
+  Layers,
+  Sparkles,
   Settings,
   ChevronDown,
   Smartphone,
@@ -49,28 +51,38 @@ const editorSections = [
   { id: 'social', label: 'Social Links', icon: Share2 },
   { id: 'contact', label: 'Contact', icon: Phone },
   { id: 'sections', label: 'Sections', icon: Layers },
-  { id: 'extras', label: 'Stories & Stats', icon: Sparkles },
+  { id: 'extras', label: 'Extras', icon: Sparkles },
   { id: 'theme', label: 'Appearance', icon: Settings },
 ];
 
 export default function Index() {
+  const { user, signOut } = useAuth();
   const builder = useCardBuilder();
   const [openSections, setOpenSections] = useState<string[]>(['profile']);
   const [previewMode, setPreviewMode] = useState<'mobile' | 'desktop'>('mobile');
   const [copied, setCopied] = useState(false);
-  
-  const demoUrl = 'https://mycard.link/demo123';
+
+  const getPublicLink = () => {
+    if (!user) return 'https://glow-bio.app';
+    if (builder.cardData.customDomain) {
+      const domain = builder.cardData.customDomain.replace(/^(https?:\/\/)/, '');
+      return `https://${domain}`;
+    }
+    return `${window.location.origin}/p/${user.id}`;
+  };
+
+  const publicLink = getPublicLink();
 
   const toggleSection = (id: string) => {
-    setOpenSections(prev => 
-      prev.includes(id) 
-        ? prev.filter(s => s !== id) 
+    setOpenSections(prev =>
+      prev.includes(id)
+        ? prev.filter(s => s !== id)
         : [...prev, id]
     );
   };
 
   const copyLink = () => {
-    navigator.clipboard.writeText(demoUrl);
+    navigator.clipboard.writeText(publicLink);
     setCopied(true);
     toast.success('Link copied!');
     setTimeout(() => setCopied(false), 2000);
@@ -121,6 +133,8 @@ export default function Index() {
             stories={builder.cardData.stories}
             achievements={builder.cardData.achievements}
             badges={builder.cardData.badges}
+            customDomain={builder.cardData.customDomain}
+            onUpdateField={builder.updateField}
             onAddStory={builder.addStory}
             onRemoveStory={builder.removeStory}
             onUpdateStory={builder.updateStory}
@@ -138,6 +152,7 @@ export default function Index() {
             themeMode={builder.cardData.themeMode}
             iconAnimation={builder.cardData.iconAnimation}
             iconStyle={builder.cardData.iconStyle}
+            layout={builder.cardData.layout}
             fontFamily={builder.cardData.fontFamily}
             accentColor={builder.cardData.accentColor}
             onUpdate={builder.updateField}
@@ -155,44 +170,83 @@ export default function Index() {
         {/* Header */}
         <div className="p-4 border-b flex items-center justify-between shrink-0">
           <div>
-            <h1 className="text-xl font-bold gradient-text">Card Builder</h1>
-            <p className="text-xs text-muted-foreground">Create your digital presence</p>
+            <h1 className="text-xl font-bold gradient-text flex items-center gap-2">
+              <img src="/logo.jpg" alt="GlowLink" className="h-8 w-8 rounded-lg object-contain" />
+              GlowLink
+            </h1>
+            <p className="text-xs text-muted-foreground ml-10">Premium Bio Builder</p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="gap-2" style={{ background: `linear-gradient(135deg, ${builder.cardData.accentColor}, #ec4899)` }}>
-                <QrCode className="h-4 w-4" />
-                Publish
+          <div className="flex items-center gap-2">
+            {!user ? (
+              <Button variant="ghost" size="sm" onClick={() => window.location.href = '/auth'}>
+                Sign In
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Your Card is Ready!</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col items-center gap-4 py-4">
-                <div className="p-4 bg-white rounded-2xl shadow-lg">
-                  <QRCodeSVG 
-                    value={demoUrl} 
-                    size={180} 
-                    fgColor={builder.cardData.accentColor}
-                    level="H"
-                    includeMargin
-                  />
-                </div>
-                <div className="flex items-center gap-2 w-full p-3 bg-muted rounded-lg">
-                  <Link className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate flex-1">{demoUrl}</span>
-                  <Button size="sm" variant="ghost" onClick={copyLink}>
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            ) : (
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                Sign Out
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={builder.saveProfile}
+              disabled={builder.loading}
+            >
+              {builder.loading ? 'Saving...' : 'Save'}
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="gap-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white border-0 shadow-lg shadow-purple-500/25 hover:opacity-90 transition-all">
+                  <QrCode className="h-4 w-4" />
+                  Publish
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-black/90 backdrop-blur-2xl border-white/10 text-white sm:rounded-2xl shadow-2xl shadow-purple-900/40 max-w-sm sm:max-w-md mx-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+                    Your Card is Ready!
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-5 py-4 w-full">
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
+                    <div className="relative p-3 bg-white rounded-lg">
+                      <QRCodeSVG
+                        value={publicLink}
+                        size={180}
+                        fgColor={builder.cardData.accentColor || '#000000'}
+                        level="Q"
+                        includeMargin
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 w-full items-center">
+                    <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest self-start ml-[calc(50%-140px)]">Card Link</Label>
+                    <div className="flex items-center gap-2 w-full max-w-[280px] p-1 pl-3 bg-white/5 border border-white/10 rounded-lg transition-colors focus-within:bg-white/10 focus-within:border-white/20 overflow-hidden h-9">
+                      <Link className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                      <span className="text-sm truncate flex-1 text-gray-300 font-medium min-w-0">{publicLink}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-400 hover:text-white hover:bg-white/10 h-7 w-7 p-0 rounded-md shrink-0"
+                        onClick={copyLink}
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full max-w-[280px] gap-2 bg-white text-black hover:bg-gray-100 border-0 h-9 text-sm font-medium rounded-lg transition-all shadow-sm"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download QR Code
                   </Button>
                 </div>
-                <Button variant="outline" className="w-full gap-2">
-                  <Download className="h-4 w-4" />
-                  Download QR Code
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Editor Sections */}
@@ -202,8 +256,8 @@ export default function Index() {
               const Icon = section.icon;
               const isOpen = openSections.includes(section.id);
               return (
-                <Collapsible 
-                  key={section.id} 
+                <Collapsible
+                  key={section.id}
                   open={isOpen}
                   onOpenChange={() => toggleSection(section.id)}
                 >
@@ -264,8 +318,8 @@ export default function Index() {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className={cn(
             "bg-background rounded-[2.5rem] shadow-2xl overflow-hidden transition-all duration-300",
-            previewMode === 'mobile' 
-              ? "w-[375px] h-[750px]" 
+            previewMode === 'mobile'
+              ? "w-[375px] h-[750px]"
               : "w-[800px] h-[600px] rounded-2xl"
           )}>
             {previewMode === 'mobile' && (

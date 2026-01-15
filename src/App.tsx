@@ -8,18 +8,29 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+import { AuthProvider } from "@/contexts/AuthContext";
+import { DomainHandler } from "@/components/DomainHandler";
+import Auth from "./pages/Auth";
+import PublicProfile from "./pages/PublicProfile";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <DomainHandler>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/p/:id" element={<PublicProfile />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </DomainHandler>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

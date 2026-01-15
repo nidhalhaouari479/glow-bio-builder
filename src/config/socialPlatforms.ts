@@ -1,14 +1,14 @@
-import { 
-  Facebook, 
-  Instagram, 
-  Linkedin, 
-  Twitter, 
-  Youtube, 
-  MapPin, 
-  MessageCircle, 
-  Send, 
-  Github, 
-  Dribbble, 
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
+  Twitter,
+  Youtube,
+  MapPin,
+  MessageCircle,
+  Send,
+  Github,
+  Dribbble,
   Music,
   Hash,
   Disc,
@@ -152,7 +152,7 @@ export const fontFamilies = [
   { name: 'DM Sans', value: 'DM Sans' },
   { name: 'Outfit', value: 'Outfit' },
   { name: 'Plus Jakarta Sans', value: 'Plus Jakarta Sans' },
-  { name: 'Satoshi', value: 'Satoshi' },
+  { name: 'Playfair Display', value: 'Playfair Display' },
 ];
 
 export const videoPresets = [

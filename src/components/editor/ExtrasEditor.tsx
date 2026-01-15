@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { uploadMedia } from '@/lib/storage';
+import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Story, Achievement, Badge } from '@/types/cardBuilder';
-import { Plus, Trash2, ImageIcon, Trophy, Award, X, Upload, Smile, Video, Image } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, Trophy, Award, X, Upload, Smile, Video, Image, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Popover,
@@ -29,6 +31,8 @@ interface ExtrasEditorProps {
   onAddBadge: (badge: Badge) => void;
   onRemoveBadge: (id: string) => void;
   onUpdateBadge: (id: string, updates: Partial<Badge>) => void;
+  customDomain?: string | null;
+  onUpdateField: (field: any, value: any) => void;
 }
 
 const badgeColors = [
@@ -53,9 +57,15 @@ export function ExtrasEditor({
   onUpdateAchievement,
   onAddBadge,
   onRemoveBadge,
+  onUpdateBadge,
+  customDomain,
+  onUpdateField,
 }: ExtrasEditorProps) {
   const [newBadgeText, setNewBadgeText] = useState('');
   const [newBadgeColor, setNewBadgeColor] = useState(badgeColors[0]);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [uploading, setUploading] = useState<{ [key: string]: boolean }>({});
   const storyImageRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const storyVideoRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
@@ -69,33 +79,37 @@ export function ExtrasEditor({
     });
   };
 
+  const handleFileUpload = async (storyId: string, file: File, type: 'image' | 'video') => {
+    if (!file) return;
+
+    setUploading(prev => ({ ...prev, [storyId]: true }));
+    try {
+      const publicUrl = await uploadMedia(file, 'avatars'); // Using avatars bucket for now
+      if (publicUrl) {
+        onUpdateStory(storyId, {
+          [type === 'image' ? 'image' : 'video']: publicUrl,
+          mediaType: type
+        });
+        toast.success(`${type === 'image' ? 'Image' : 'Video'} uploaded successfully`);
+      } else {
+        toast.error('Upload failed');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error uploading file');
+    } finally {
+      setUploading(prev => ({ ...prev, [storyId]: false }));
+    }
+  };
+
   const handleStoryImageUpload = (storyId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateStory(storyId, { 
-          image: reader.result as string,
-          mediaType: 'image',
-          video: undefined,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) handleFileUpload(storyId, file, 'image');
   };
 
   const handleStoryVideoUpload = (storyId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onUpdateStory(storyId, { 
-          video: reader.result as string,
-          mediaType: 'video',
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    if (file) handleFileUpload(storyId, file, 'video');
   };
 
   const handleAddAchievement = () => {
@@ -119,8 +133,89 @@ export function ExtrasEditor({
     }
   };
 
+  const handleConnectDomain = async () => {
+    if (!customDomain) {
+      toast.error('Please enter a domain first');
+      return;
+    }
+
+    setIsConnecting(true);
+    setConnectionStatus('idle');
+
+    try {
+      const response = await fetch('/api/add-domain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: customDomain }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Domain linked to Vercel!');
+        setConnectionStatus('success');
+      } else {
+        console.error('Vercel error:', data);
+        toast.error(data.error?.message || 'Failed to link domain');
+        setConnectionStatus('error');
+      }
+    } catch (error) {
+      toast.error('Connection error. Make sure you are hosted on Vercel.');
+      setConnectionStatus('error');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Custom Domain */}
+      <div className="space-y-3 p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20">
+        <div className="flex items-center gap-2">
+          <Upload className="h-4 w-4 text-purple-400" />
+          <Label className="text-sm font-semibold text-purple-200">Custom Domain (Pro)</Label>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Point your own domain (e.g., <span className="text-cyan-400">www.jhon.com</span>) to your card.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={customDomain || ''}
+            onChange={(e) => onUpdateField('customDomain', e.target.value)}
+            placeholder="www.yourname.com"
+            className="h-9 bg-black/20 border-white/10"
+          />
+          <Button
+            size="sm"
+            onClick={handleConnectDomain}
+            disabled={isConnecting || !customDomain}
+            className={cn(
+              "h-9 px-4 transition-all",
+              connectionStatus === 'success' ? "bg-green-500 hover:bg-green-600" : "bg-purple-600 hover:bg-purple-700"
+            )}
+          >
+            {isConnecting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : connectionStatus === 'success' ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              'Connect'
+            )}
+          </Button>
+        </div>
+        <div className="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">DNS Settings</p>
+          <div className="flex justify-between text-[10px]">
+            <span className="text-gray-500">Record Type:</span>
+            <span className="text-cyan-400 font-mono">CNAME</span>
+          </div>
+          <div className="flex justify-between text-[10px]">
+            <span className="text-gray-500">Value:</span>
+            <span className="text-cyan-400 font-mono">cname.glowlink.bio</span>
+          </div>
+        </div>
+      </div>
+
       {/* Stories */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -133,7 +228,7 @@ export function ExtrasEditor({
             Add
           </Button>
         </div>
-        
+
         <div className="space-y-3">
           {stories.map((story) => (
             <div key={story.id} className="p-3 rounded-lg border bg-card space-y-3">
@@ -141,19 +236,19 @@ export function ExtrasEditor({
                 {/* Story Media Preview */}
                 <div className="relative group shrink-0">
                   {story.mediaType === 'video' && story.video ? (
-                    <video 
+                    <video
                       src={story.video}
                       className="h-14 w-14 rounded-full object-cover border-2 border-border"
                       muted
                     />
                   ) : (
-                    <img 
-                      src={story.image} 
+                    <img
+                      src={story.image}
                       alt={story.title}
                       className="h-14 w-14 rounded-full object-cover border-2 border-border"
                     />
                   )}
-                  
+
                   {/* Hidden file inputs */}
                   <input
                     type="file"
@@ -170,7 +265,7 @@ export function ExtrasEditor({
                     className="hidden"
                   />
                 </div>
-                
+
                 <div className="flex-1 space-y-2">
                   <Input
                     value={story.title}
@@ -185,21 +280,21 @@ export function ExtrasEditor({
                     placeholder="Story description (optional)"
                   />
                 </div>
-                
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
+
+                <Button
+                  size="icon"
+                  variant="ghost"
                   className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
                   onClick={() => onRemoveStory(story.id)}
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
-              
+
               {/* Media Type Toggle & Upload */}
               <div className="flex gap-2 items-center">
-                <ToggleGroup 
-                  type="single" 
+                <ToggleGroup
+                  type="single"
                   value={story.mediaType}
                   onValueChange={(v) => v && onUpdateStory(story.id, { mediaType: v as 'image' | 'video' })}
                   className="shrink-0"
@@ -213,11 +308,12 @@ export function ExtrasEditor({
                     Video
                   </ToggleGroupItem>
                 </ToggleGroup>
-                
+
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-8"
+                  disabled={uploading[story.id]}
                   onClick={() => {
                     if (story.mediaType === 'video') {
                       storyVideoRefs.current[story.id]?.click();
@@ -227,15 +323,15 @@ export function ExtrasEditor({
                   }}
                 >
                   <Upload className="h-3 w-3 mr-1" />
-                  Upload {story.mediaType === 'video' ? 'Video' : 'Image'}
+                  {uploading[story.id] ? 'Uploading...' : `Upload ${story.mediaType === 'video' ? 'Video' : 'Image'}`}
                 </Button>
               </div>
-              
+
               {/* URL input */}
               <Input
                 value={story.mediaType === 'video' ? (story.video || '') : story.image}
-                onChange={(e) => onUpdateStory(story.id, 
-                  story.mediaType === 'video' 
+                onChange={(e) => onUpdateStory(story.id,
+                  story.mediaType === 'video'
                     ? { video: e.target.value }
                     : { image: e.target.value }
                 )}
@@ -245,7 +341,7 @@ export function ExtrasEditor({
             </div>
           ))}
         </div>
-        
+
         {stories.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4">
             Add stories to showcase your highlights
@@ -265,7 +361,7 @@ export function ExtrasEditor({
             Add
           </Button>
         </div>
-        
+
         <div className="space-y-2">
           {achievements.map((achievement) => (
             <div key={achievement.id} className="flex items-center gap-2 p-2 rounded-lg border bg-card">
@@ -313,9 +409,9 @@ export function ExtrasEditor({
                 className="w-12 h-8 text-sm"
                 placeholder="+"
               />
-              <Button 
-                size="icon" 
-                variant="ghost" 
+              <Button
+                size="icon"
+                variant="ghost"
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={() => onRemoveAchievement(achievement.id)}
               >
@@ -324,7 +420,7 @@ export function ExtrasEditor({
             </div>
           ))}
         </div>
-        
+
         {achievements.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-4">
             Add stats to show your achievements
@@ -340,16 +436,16 @@ export function ExtrasEditor({
             Badges & Tags
           </Label>
         </div>
-        
+
         <div className="flex flex-wrap gap-2 mb-3">
           {badges.map((badge) => (
-            <div 
+            <div
               key={badge.id}
               className="flex items-center gap-1 px-3 py-1 rounded-full text-white text-sm"
               style={{ backgroundColor: badge.color }}
             >
               {badge.text}
-              <button 
+              <button
                 onClick={() => onRemoveBadge(badge.id)}
                 className="ml-1 hover:opacity-70"
               >

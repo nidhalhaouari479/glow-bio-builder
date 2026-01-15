@@ -1,73 +1,66 @@
-# Welcome to your Lovable project
+# ✨ Glow Bio Builder
 
-## Project info
+**Glow Bio Builder** is a premium, highly customizable digital card and bio builder designed for professionals and creators. It allows users to create stunning, glassmorphism-styled digital business cards with rich media support, including Instagram-style stories, social links, and real-time previews.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Glow Bio Builder Preview](public/og-image.png)
 
-## How can I edit this code?
+## 🚀 Key Features
 
-There are several ways of editing your application.
+### 🎨 Visual & Design
+*   **Glassmorphism UI**: A modern, sleek interface with blur effects, gradients, and animations.
+*   **Real-Time Builder**: See changes instantly as you edit your profile.
+*   **Custom Themes**: Choose from verified color pellets and background animations (Particles, Gradient Mesh).
+*   **Responsive**: 100% Mobile-optimized design that looks like a native app.
 
-**Use Lovable**
+### 📸 Stories & Media (New!)
+*   **Instagram-Style Stories**: Upload photos and videos that vanish (or stay) on your profile.
+*   **Immersive Viewer**: 100% Full-screen, borderless story viewer with tap navigation.
+*   **Video Support**: Auto-playing vertical videos with blurred backgrounds for landscape media.
+*   **Supabase Storage**: Robust media handling for high-quality uploads.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 🔗 Connectivity
+*   **Smart Social Links**: Add links to Instagram, LinkedIn, TikTok, YouTube, and more with auto-detected icons.
+*   **Contact Actions**: "Save Contact", "Email Me", and "Call Now" buttons for instant networking.
+*   **QR Code Generation**: Every profile gets a unique QR code for easy sharing.
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🛠 Tech Stack
+*   **Frontend**: React, TypeScript, Vite
+*   **Styling**: Tailwind CSS, shadcn/ui, Framer Motion
+*   **Backend**: Supabase (PostgreSQL, Auth, Storage)
+*   **Deployment**: Ready for Vercel/Netlify
 
-**Use your preferred IDE**
+## 🏁 Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
+*   Node.js (v18+)
+*   Supabase Account
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/glow-bio-builder.git
+    cd glow-bio-builder
+    ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+3.  **Setup Environment Variables**
+    Create a `.env` file and add your Supabase credentials:
+    ```env
+    VITE_SUPABASE_URL=your_project_url
+    VITE_SUPABASE_ANON_KEY=your_anon_key
+    ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+4.  **Run Development Server**
+    ```bash
+    npm run dev
+    ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 📜 License
+This project is open-source and available under the MIT License.
 
-**Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
