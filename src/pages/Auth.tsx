@@ -46,10 +46,11 @@ export default function Auth() {
         }
 
         setLoading(true);
+        console.log(`Starting ${isSignUp ? 'Sign Up' : 'Sign In'} for email: ${email}`);
 
         try {
             if (isSignUp) {
-                const { error } = await supabase.auth.signUp({
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -61,17 +62,20 @@ export default function Auth() {
                     }
                 });
                 if (error) throw error;
+                console.log('Sign Up successful:', data);
                 toast.success('Check your email for the confirmation link!');
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+                console.log('Sign In successful:', data);
                 toast.success('Successfully logged in!');
                 navigate('/');
             }
         } catch (error: any) {
+            console.error(`${isSignUp ? 'Sign Up' : 'Sign In'} failed:`, error);
             toast.error(error.message);
         } finally {
             setLoading(false);

@@ -44,6 +44,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
 
 const editorSections = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -54,8 +55,6 @@ const editorSections = [
   { id: 'extras', label: 'Extras', icon: Sparkles },
   { id: 'theme', label: 'Appearance', icon: Settings },
 ];
-
-import { useNavigate } from 'react-router-dom';
 
 export default function Index() {
   const { user, signOut } = useAuth();
