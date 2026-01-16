@@ -55,9 +55,12 @@ const editorSections = [
   { id: 'theme', label: 'Appearance', icon: Settings },
 ];
 
+import { useNavigate } from 'react-router-dom';
+
 export default function Index() {
   const { user, signOut } = useAuth();
   const builder = useCardBuilder();
+  const navigate = useNavigate();
   const [openSections, setOpenSections] = useState<string[]>(['profile']);
   const [previewMode, setPreviewMode] = useState<'mobile' | 'desktop'>('mobile');
   const [copied, setCopied] = useState(false);
@@ -178,7 +181,7 @@ export default function Index() {
           </div>
           <div className="flex items-center gap-2">
             {!user ? (
-              <Button variant="ghost" size="sm" onClick={() => window.location.href = '/auth'}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
                 Sign In
               </Button>
             ) : (
