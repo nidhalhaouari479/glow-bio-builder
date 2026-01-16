@@ -65,12 +65,12 @@ export default function Index() {
   const [copied, setCopied] = useState(false);
 
   const getPublicLink = () => {
-    if (!user) return 'https://glow-bio.app';
+    if (!user) return 'https://glow-bio-builder-asnk.vercel.app';
     if (builder.cardData.customDomain) {
       const domain = builder.cardData.customDomain.replace(/^(https?:\/\/)/, '');
       return `https://${domain}`;
     }
-    return `${window.location.origin}/p/${user.id}`;
+    return `https://glow-bio-builder-asnk.vercel.app/p/${user.id}`;
   };
 
   const publicLink = getPublicLink();
