@@ -23,9 +23,35 @@ export function useCardBuilder() {
   const [cardData, setCardData] = useState<CardData>(defaultCardData);
   const [loading, setLoading] = useState(false);
 
+  // Load draft from localStorage
+  const loadDraft = useCallback((userId: string | undefined, currentData: CardData) => {
+    try {
+      const key = `glow_bio_draft_${userId || 'guest'}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Deep merge or just overwrite? Overwriting is safer for now to ensure consistency
+        // ensuring we keep defaults for any missing new fields
+        return { ...currentData, ...parsed };
+      }
+    } catch (e) {
+      console.error('Failed to load draft', e);
+    }
+    return null;
+  }, []);
+
   // Fetch data on load
   useEffect(() => {
-    if (!user) return;
+    // Initial load for guest or user
+    const key = `glow_bio_draft_${user?.id || 'guest'}`;
+    const savedDraft = loadDraft(user?.id, defaultCardData);
+
+    if (!user) {
+      if (savedDraft) {
+        setCardData(savedDraft);
+      }
+      return;
+    }
 
     const fetchProfile = async () => {
       setLoading(true);
@@ -38,56 +64,58 @@ export function useCardBuilder() {
 
         if (error && error.code !== 'PGRST116') throw error;
 
+        let dbData: CardData = defaultCardData;
+
         if (data) {
-          // Merge fetched data with default structure to ensure all fields exist
-          setCardData(prev => ({
-            ...prev,
-            name: data.full_name || prev.name,
-            bio: data.bio || prev.bio,
-            profileImage: data.avatar_url || prev.profileImage,
-            // Parse JSON fields safely
-            ...data.theme_config, // Assuming theme_config helper stores the rest of the json structure
-          }));
-
-          // For now, let's assume if we saved it as a big JSON blob it would be easier,
-          // but the schema has specific columns. Let's adjust to just save everything 
-          // in `theme_config` or dedicated columns for simplicity given the complex object.
-          // Re-reading schema: `theme_config` is jsonb.
-          // Let's store the entire CardData (minus id/user_id) in `theme_config` for MVP speed?
-          // Or map fields. The schema had: username, full_name, avatar_url, bio, theme_config.
-          // We can map:
-          // name -> full_name
-          // bio -> bio
-          // profileImage -> avatar_url
-          // EVERYTHING ELSE -> theme_config
-
-          if (data.theme_config) {
-            setCardData(prev => ({
-              ...prev,
-              name: data.full_name || prev.name,
-              bio: data.bio || prev.bio,
-              profileImage: data.avatar_url || prev.profileImage,
-              ...(data.theme_config as Partial<CardData>) // Spread the rest
-            }));
-          } else {
-            setCardData(prev => ({
-              ...prev,
-              name: data.full_name || prev.name,
-              bio: data.bio || prev.bio,
-              profileImage: data.avatar_url || prev.profileImage,
-            }));
-          }
+          // Construct CardData from DB
+          dbData = {
+            ...defaultCardData,
+            name: data.full_name || defaultCardData.name,
+            bio: data.bio || defaultCardData.bio,
+            profileImage: data.avatar_url || defaultCardData.profileImage,
+            ...(data.theme_config as Partial<CardData>)
+          };
         }
+
+        // If we have a local draft, we should decide whether to use it.
+        // For now, if a draft exists, it's likely newer or "unsaved work".
+        // We will prioritize the draft but maybe we should warn?
+        // Simpler approach: Use draft if exists.
+        if (savedDraft) {
+          // We might want to check if the draft is actually different?
+          // For now, just use draft.
+          setCardData(savedDraft);
+          console.log('Restored draft from localStorage');
+        } else {
+          setCardData(dbData);
+        }
+
       } catch (error: any) {
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile');
+        // Fallback to draft if DB fails
+        if (savedDraft) setCardData(savedDraft);
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [user]);
+  }, [user, loadDraft]);
+
+  // Save to localStorage whenever cardData changes
+  useEffect(() => {
+    const key = `glow_bio_draft_${user?.id || 'guest'}`;
+    // Debounce slightly to avoid excessive writes? 
+    // LocalStorage is sync and fast for this size, but debounce is good practice.
+    // However, for "instant" feel on crash/close, immediate is better or short debounce.
+    // Let's do 500ms debounce.
+    const timer = setTimeout(() => {
+      localStorage.setItem(key, JSON.stringify(cardData));
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [cardData, user]);
 
   const saveProfile = async () => {
     if (!user) {
@@ -114,6 +142,12 @@ export function useCardBuilder() {
 
       if (error) throw error;
       toast.success('Profile saved successfully!');
+
+      // OPTIONAL: Clear draft on save?
+      // localStorage.removeItem(`glow_bio_draft_${user.id}`);
+      // Actually, keep it. It's the "current state". 
+      // If we clear it, the next render (debounced) will put it back anyway.
+
     } catch (error: any) {
       console.error('Error saving profile:', error);
       toast.error('Failed to save profile');
