@@ -3,14 +3,14 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Section, SectionType } from '@/types/cardBuilder';
-import { 
-  DndContext, 
-  closestCenter, 
-  KeyboardSensor, 
-  PointerSensor, 
-  useSensor, 
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
   useSensors,
-  DragEndEvent 
+  DragEndEvent
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -20,14 +20,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { 
-  GripVertical, 
-  User, 
-  Share2, 
-  Phone, 
-  Trophy, 
-  BookOpen, 
-  Award 
+import {
+  GripVertical,
+  User,
+  Share2,
+  Phone,
+  Trophy,
+  BookOpen,
+  Award,
+  Puzzle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,7 @@ const sectionIcons: Record<SectionType, React.ElementType> = {
   achievements: Trophy,
   stories: BookOpen,
   badges: Award,
+  custom_widgets: Puzzle,
 };
 
 const sectionLabels: Record<SectionType, string> = {
@@ -53,6 +55,7 @@ const sectionLabels: Record<SectionType, string> = {
   achievements: 'Stats & Achievements',
   stories: 'Stories',
   badges: 'Badges & Tags',
+  custom_widgets: 'Custom Widgets',
 };
 
 function SortableItem({ section, onToggle }: { section: Section; onToggle: () => void }) {
@@ -89,7 +92,7 @@ function SortableItem({ section, onToggle }: { section: Section; onToggle: () =>
       >
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </button>
-      <div 
+      <div
         className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center",
           section.enabled ? "bg-primary/10" : "bg-muted"
@@ -140,7 +143,7 @@ export function SectionOrderEditor({ sections, onReorder, onToggle }: SectionOrd
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium">Drag to reorder sections</Label>
       </div>
-      
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -152,9 +155,9 @@ export function SectionOrderEditor({ sections, onReorder, onToggle }: SectionOrd
         >
           <div className="space-y-2">
             {sortedSections.map((section) => (
-              <SortableItem 
-                key={section.id} 
-                section={section} 
+              <SortableItem
+                key={section.id}
+                section={section}
                 onToggle={() => onToggle(section.id)}
               />
             ))}

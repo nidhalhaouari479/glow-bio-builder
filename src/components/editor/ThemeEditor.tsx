@@ -2,16 +2,16 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CardData, ThemeMode, IconAnimation, IconStyle } from '@/types/cardBuilder';
+import { CardData, ThemeMode, IconAnimation, IconStyle, LayoutType } from '@/types/cardBuilder';
 import { fontFamilies } from '@/config/socialPlatforms';
-import { Sun, Moon, Monitor, Sparkles, Zap, MousePointer, Hand, Circle, Square, RectangleHorizontal, Layers } from 'lucide-react';
+import { Sun, Moon, Monitor, Sparkles, Zap, MousePointer, Hand, Circle, Square, RectangleHorizontal, Layers, Code, Briefcase, Box, Paintbrush } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ThemeEditorProps {
   themeMode: ThemeMode;
   iconAnimation: IconAnimation;
   iconStyle: IconStyle;
-  layout: 'list' | 'bento';
+  layout: LayoutType;
   fontFamily: string;
   accentColor: string;
   onUpdate: <K extends keyof CardData>(field: K, value: CardData[K]) => void;
@@ -57,20 +57,52 @@ export function ThemeEditor({
         <Label className="text-sm font-medium">Layout Style</Label>
         <div className="grid grid-cols-2 gap-2">
           <Button
-            variant={themeMode === 'light' /* hack for visual consistency when used as toggles */ && (layout === 'list' || !layout) ? "default" : "outline"}
-            className={cn("flex items-center gap-2", (!layout || layout === 'list') && "border-primary bg-primary/10 text-primary")}
+            variant="outline"
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", (layout === 'list' || !layout) && "border-primary bg-primary/10 text-primary")}
             onClick={() => onUpdate('layout', 'list')}
           >
             <Layers className="h-4 w-4" />
-            Standard List
+            <span className="text-xs">Standard List</span>
           </Button>
           <Button
             variant="outline"
-            className={cn("flex items-center gap-2", layout === 'bento' && "border-primary bg-primary/10 text-primary")}
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", layout === 'bento' && "border-primary bg-primary/10 text-primary")}
             onClick={() => onUpdate('layout', 'bento')}
           >
             <Monitor className="h-4 w-4" />
-            Bento Grid
+            <span className="text-xs">Bento Grid</span>
+          </Button>
+          <Button
+            variant="outline"
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", layout === 'terminal' && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'terminal')}
+          >
+            <Code className="h-4 w-4" />
+            <span className="text-xs">Terminal</span>
+          </Button>
+          <Button
+            variant="outline"
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", layout === 'portfolio' && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'portfolio')}
+          >
+            <Briefcase className="h-4 w-4" />
+            <span className="text-xs">Portfolio</span>
+          </Button>
+          <Button
+            variant="outline"
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", layout === 'hologram' && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'hologram')}
+          >
+            <Box className="h-4 w-4" />
+            <span className="text-xs">Hologram</span>
+          </Button>
+          <Button
+            variant="outline"
+            className={cn("flex items-center gap-2 h-auto py-3 flex-col", layout === 'brutalist' && "border-primary bg-primary/10 text-primary")}
+            onClick={() => onUpdate('layout', 'brutalist')}
+          >
+            <Paintbrush className="h-4 w-4" />
+            <span className="text-xs">Brutalist</span>
           </Button>
         </div>
       </div>

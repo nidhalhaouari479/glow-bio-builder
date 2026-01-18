@@ -13,6 +13,7 @@ import {
   IconAnimation,
   IconStyle,
 } from '@/types/cardBuilder';
+import { Template } from '@/config/templates';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -66,7 +67,6 @@ export function useCardBuilder() {
               name: data.full_name || prev.name,
               bio: data.bio || prev.bio,
               profileImage: data.avatar_url || prev.profileImage,
-              customDomain: data.custom_domain || prev.customDomain,
               ...(data.theme_config as Partial<CardData>) // Spread the rest
             }));
           } else {
@@ -75,7 +75,6 @@ export function useCardBuilder() {
               name: data.full_name || prev.name,
               bio: data.bio || prev.bio,
               profileImage: data.avatar_url || prev.profileImage,
-              customDomain: data.custom_domain || prev.customDomain,
             }));
           }
         }
@@ -98,14 +97,13 @@ export function useCardBuilder() {
 
     setLoading(true);
     try {
-      const { name, bio, profileImage, customDomain, ...rest } = cardData;
+      const { name, bio, profileImage, ...rest } = cardData;
 
       const updates = {
         id: user.id,
         full_name: name,
         bio: bio,
         avatar_url: profileImage,
-        custom_domain: customDomain,
         theme_config: rest,
         updated_at: new Date().toISOString(),
       };
@@ -225,6 +223,14 @@ export function useCardBuilder() {
     }));
   }, []);
 
+  const applyTemplate = useCallback((template: Template) => {
+    setCardData(prev => ({
+      ...prev,
+      ...template.config,
+    }));
+    toast.success(`${template.name} theme applied!`);
+  }, []);
+
   const reorderSections = useCallback((sections: Section[]) => {
     setCardData(prev => ({ ...prev, sections }));
   }, []);
@@ -254,6 +260,10 @@ export function useCardBuilder() {
     updateField('profileImage', image);
   }, [updateField]);
 
+  const setCustomWidgets = useCallback((widgets: any[]) => {
+    updateField('customWidgets', widgets);
+  }, [updateField]);
+
   return {
     cardData,
     loading,
@@ -271,12 +281,14 @@ export function useCardBuilder() {
     addBadge,
     removeBadge,
     updateBadge,
+    applyTemplate,
     reorderSections,
     toggleSection,
     setThemeMode,
     setIconAnimation,
     setIconStyle,
     setProfileImage,
+    setCustomWidgets,
     setCoverImage: useCallback((image: string | null) => {
       updateField('coverImage', image);
     }, [updateField]),

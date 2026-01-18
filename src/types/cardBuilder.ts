@@ -1,10 +1,12 @@
 export type BackgroundType = 'solid' | 'gradient' | 'video' | 'particles';
 
-export type ParticlePreset = 'default' | 'snow' | 'bubbles' | 'stars' | 'confetti';
+export type ParticlePreset = 'none' | 'default' | 'snow' | 'bubbles' | 'stars' | 'confetti';
 
 export type IconAnimation = 'none' | 'pulse' | 'glow' | 'lift' | 'shake';
 
 export type IconStyle = 'rounded' | 'square' | 'pill';
+
+export type LayoutType = 'list' | 'bento' | 'terminal' | 'portfolio' | 'hologram' | 'brutalist';
 
 export type ThemeMode = 'light' | 'dark' | 'auto';
 
@@ -64,7 +66,26 @@ export interface Badge {
   color: string;
 }
 
-export type SectionType = 'bio' | 'social' | 'contact' | 'achievements' | 'stories' | 'badges';
+export interface CustomWidget {
+  id: string;
+  type: 'text' | 'links' | 'counter' | 'poll' | 'gallery' | 'audio';
+  title?: string;
+  content: any; // Config based on type
+  settings: {
+    backgroundColor?: string;
+    textColor?: string;
+    borderRadius?: string;
+    borderStyle?: 'none' | 'solid' | 'dashed' | 'double';
+    borderColor?: string;
+    padding?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    animation?: 'none' | 'float' | 'shake' | 'glow';
+  };
+  enabled: boolean;
+  order: number;
+}
+
+export type SectionType = 'bio' | 'social' | 'contact' | 'achievements' | 'stories' | 'badges' | 'custom_widgets';
 
 export interface Section {
   id: string;
@@ -102,10 +123,10 @@ export interface CardData {
   achievements: Achievement[];
   badges: Badge[];
   sections: Section[];
+  customWidgets: CustomWidget[];
   iconAnimation: IconAnimation;
   iconStyle: IconStyle;
-  layout: 'list' | 'bento';
-  customDomain?: string | null;
+  layout: LayoutType;
 }
 
 export const defaultSocialLinks: SocialLink[] = [
@@ -140,6 +161,7 @@ export const defaultSections: Section[] = [
   { id: '4', type: 'achievements', enabled: true, order: 3 },
   { id: '5', type: 'stories', enabled: true, order: 4 },
   { id: '6', type: 'badges', enabled: true, order: 5 },
+  { id: '7', type: 'custom_widgets', enabled: true, order: 6 },
 ];
 
 export const defaultCardData: CardData = {
@@ -179,8 +201,8 @@ export const defaultCardData: CardData = {
     { id: '3', text: 'Verified', color: '#10b981' },
   ],
   sections: defaultSections,
+  customWidgets: [],
   iconAnimation: 'lift',
   iconStyle: 'rounded',
   layout: 'list',
-  customDomain: null,
 };

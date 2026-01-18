@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { CardPreview } from '@/components/preview/CardPreview';
 import { CardData, defaultCardData } from '@/types/cardBuilder';
 import { Loader2 } from 'lucide-react';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 export default function PublicProfile({ customId }: { customId?: string }) {
     const { id: paramId } = useParams<{ id: string }>();
@@ -12,6 +13,7 @@ export default function PublicProfile({ customId }: { customId?: string }) {
     const [data, setData] = useState<CardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { trackView } = useAnalytics();
 
     useEffect(() => {
         async function fetchProfile() {
@@ -46,7 +48,10 @@ export default function PublicProfile({ customId }: { customId?: string }) {
         }
 
         fetchProfile();
-    }, [id]);
+        if (id) {
+            trackView(id);
+        }
+    }, [id, trackView]);
 
     if (loading) {
         return (

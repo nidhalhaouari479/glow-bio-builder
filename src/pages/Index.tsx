@@ -9,6 +9,9 @@ import { ContactEditor } from '@/components/editor/ContactEditor';
 import { SectionOrderEditor } from '@/components/editor/SectionOrderEditor';
 import { ThemeEditor } from '@/components/editor/ThemeEditor';
 import { ExtrasEditor } from '@/components/editor/ExtrasEditor';
+import { TemplateEditor } from '@/components/editor/TemplateEditor';
+import { AnalyticsDashboard } from '@/components/editor/AnalyticsDashboard';
+import { CustomWidgetEditor } from '@/components/editor/CustomWidgetEditor';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +25,7 @@ import {
   Palette,
   Share2,
   Phone,
+  Layout,
   Layers,
   Sparkles,
   Settings,
@@ -32,7 +36,8 @@ import {
   Download,
   Link,
   Copy,
-  Check
+  Check,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -48,11 +53,14 @@ import { useNavigate } from 'react-router-dom';
 
 const editorSections = [
   { id: 'profile', label: 'Profile', icon: User },
+  { id: 'templates', label: 'Templates', icon: Sparkles },
   { id: 'background', label: 'Background', icon: Palette },
   { id: 'social', label: 'Social Links', icon: Share2 },
   { id: 'contact', label: 'Contact', icon: Phone },
   { id: 'sections', label: 'Sections', icon: Layers },
   { id: 'extras', label: 'Extras', icon: Sparkles },
+  { id: 'custom_widgets', label: 'Custom Widgets', icon: Sparkles },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'theme', label: 'Appearance', icon: Settings },
 ];
 
@@ -65,12 +73,7 @@ export default function Index() {
   const [copied, setCopied] = useState(false);
 
   const getPublicLink = () => {
-    if (!user) return 'https://glow-bio-builder-asnk.vercel.app';
-    if (builder.cardData.customDomain) {
-      const domain = builder.cardData.customDomain.replace(/^(https?:\/\/)/, '');
-      return `https://${domain}`;
-    }
-    return `https://glow-bio-builder-asnk.vercel.app/p/${user.id}`;
+    return `https://glow-bio-builder-asnk.vercel.app/p/${user?.id || ''}`;
   };
 
   const publicLink = getPublicLink();
@@ -98,6 +101,13 @@ export default function Index() {
             data={builder.cardData}
             onUpdate={builder.updateField}
             onImageUpload={builder.setProfileImage}
+          />
+        );
+      case 'templates':
+        return (
+          <TemplateEditor
+            onApply={builder.applyTemplate}
+            currentAccentColor={builder.cardData.accentColor}
           />
         );
       case 'background':
@@ -135,8 +145,6 @@ export default function Index() {
             stories={builder.cardData.stories}
             achievements={builder.cardData.achievements}
             badges={builder.cardData.badges}
-            customDomain={builder.cardData.customDomain}
-            onUpdateField={builder.updateField}
             onAddStory={builder.addStory}
             onRemoveStory={builder.removeStory}
             onUpdateStory={builder.updateStory}
@@ -146,6 +154,14 @@ export default function Index() {
             onAddBadge={builder.addBadge}
             onRemoveBadge={builder.removeBadge}
             onUpdateBadge={builder.updateBadge}
+          />
+        );
+      case 'custom_widgets':
+        return (
+          <CustomWidgetEditor
+            widgets={builder.cardData.customWidgets}
+            onUpdate={(widgets) => builder.updateField('customWidgets', widgets)}
+            accentColor={builder.cardData.accentColor}
           />
         );
       case 'theme':
@@ -160,6 +176,8 @@ export default function Index() {
             onUpdate={builder.updateField}
           />
         );
+      case 'analytics':
+        return <AnalyticsDashboard />;
       default:
         return null;
     }
@@ -192,62 +210,76 @@ export default function Index() {
               variant="outline"
               size="sm"
               onClick={builder.saveProfile}
-              disabled={builder.loading}
+              disabled={builder.loading || !user}
+              title={!user ? "Sign in to save your profile" : "Save changes"}
             >
               {builder.loading ? 'Saving...' : 'Save'}
             </Button>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button className="gap-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white border-0 shadow-lg shadow-purple-500/25 hover:opacity-90 transition-all">
-                  <QrCode className="h-4 w-4" />
-                  Publish
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/90 backdrop-blur-2xl border-white/10 text-white sm:rounded-2xl shadow-2xl shadow-purple-900/40 max-w-sm sm:max-w-md mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-                    Your Card is Ready!
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-5 py-4 w-full">
-                  <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
-                    <div className="relative p-3 bg-white rounded-lg">
-                      <QRCodeSVG
-                        value={publicLink}
-                        size={180}
-                        fgColor={builder.cardData.accentColor || '#000000'}
-                        level="Q"
-                        includeMargin
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1 w-full items-center">
-                    <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest self-start ml-[calc(50%-140px)]">Card Link</Label>
-                    <div className="flex items-center gap-2 w-full max-w-[280px] p-1 pl-3 bg-white/5 border border-white/10 rounded-lg transition-colors focus-within:bg-white/10 focus-within:border-white/20 overflow-hidden h-9">
-                      <Link className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                      <span className="text-sm truncate flex-1 text-gray-300 font-medium min-w-0">{publicLink}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-400 hover:text-white hover:bg-white/10 h-7 w-7 p-0 rounded-md shrink-0"
-                        onClick={copyLink}
-                      >
-                        {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Button
-                    className="w-full max-w-[280px] gap-2 bg-white text-black hover:bg-gray-100 border-0 h-9 text-sm font-medium rounded-lg transition-all shadow-sm"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download QR Code
+            {!user ? (
+              <Button
+                onClick={() => {
+                  toast.error("Please sign in to publish your card");
+                  navigate('/auth');
+                }}
+                className="gap-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white border-0 shadow-lg shadow-purple-500/25 hover:opacity-90 transition-all opacity-50"
+              >
+                <QrCode className="h-4 w-4" />
+                Publish
+              </Button>
+            ) : (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white border-0 shadow-lg shadow-purple-500/25 hover:opacity-90 transition-all">
+                    <QrCode className="h-4 w-4" />
+                    Publish
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent className="bg-black/90 backdrop-blur-2xl border-white/10 text-white sm:rounded-2xl shadow-2xl shadow-purple-900/40 max-w-sm sm:max-w-md mx-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
+                      Your Card is Ready!
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center gap-5 py-4 w-full">
+                    <div className="relative group">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
+                      <div className="relative p-3 bg-white rounded-lg">
+                        <QRCodeSVG
+                          value={publicLink}
+                          size={180}
+                          fgColor={builder.cardData.accentColor || '#000000'}
+                          level="Q"
+                          includeMargin
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 w-full items-center">
+                      <Label className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest self-start ml-[calc(50%-140px)]">Card Link</Label>
+                      <div className="flex items-center gap-2 w-full max-w-[280px] p-1 pl-3 bg-white/5 border border-white/10 rounded-lg transition-colors focus-within:bg-white/10 focus-within:border-white/20 overflow-hidden h-9">
+                        <Link className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                        <span className="text-sm truncate flex-1 text-gray-300 font-medium min-w-0">{publicLink}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-gray-400 hover:text-white hover:bg-white/10 h-7 w-7 p-0 rounded-md shrink-0"
+                          onClick={copyLink}
+                        >
+                          {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Button
+                      className="w-full max-w-[280px] gap-2 bg-white text-black hover:bg-gray-100 border-0 h-9 text-sm font-medium rounded-lg transition-all shadow-sm"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download QR Code
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
