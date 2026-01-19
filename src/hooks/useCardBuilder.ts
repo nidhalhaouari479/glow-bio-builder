@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   CardData,
   defaultCardData,
@@ -40,16 +40,25 @@ export function useCardBuilder() {
     return null;
   }, []);
 
+  const hasFetched = useRef(false);
+
   // Fetch data on load
   useEffect(() => {
-    // Initial load for guest or user
-    const key = `glow_bio_draft_${user?.id || 'guest'}`;
-    const savedDraft = loadDraft(user?.id, defaultCardData);
+    // Determine the key based on user ID
+    const userId = user?.id;
+    const key = `glow_bio_draft_${userId || 'guest'}`;
 
-    if (!user) {
+    // Always load draft first for immediate UI update
+    const savedDraft = loadDraft(userId, defaultCardData);
+
+    // Only perform the database fetch once per mount/user-change
+    if (hasFetched.current && userId === user?.id) return;
+
+    if (!userId) {
       if (savedDraft) {
         setCardData(savedDraft);
       }
+      hasFetched.current = true;
       return;
     }
 
@@ -59,7 +68,7 @@ export function useCardBuilder() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', userId)
           .single();
 
         if (error && error.code !== 'PGRST116') throw error;
@@ -67,7 +76,6 @@ export function useCardBuilder() {
         let dbData: CardData = defaultCardData;
 
         if (data) {
-          // Construct CardData from DB
           dbData = {
             ...defaultCardData,
             name: data.full_name || defaultCardData.name,
@@ -77,23 +85,18 @@ export function useCardBuilder() {
           };
         }
 
-        // If we have a local draft, we should decide whether to use it.
-        // For now, if a draft exists, it's likely newer or "unsaved work".
-        // We will prioritize the draft but maybe we should warn?
-        // Simpler approach: Use draft if exists.
+        // If we have a local draft, we prioritize it as "unsaved work"
         if (savedDraft) {
-          // We might want to check if the draft is actually different?
-          // For now, just use draft.
           setCardData(savedDraft);
-          console.log('Restored draft from localStorage');
+          console.log('Restored draft from localStorage for user:', userId);
         } else {
           setCardData(dbData);
         }
 
+        hasFetched.current = true;
       } catch (error: any) {
         console.error('Error fetching profile:', error);
         toast.error('Failed to load profile');
-        // Fallback to draft if DB fails
         if (savedDraft) setCardData(savedDraft);
       } finally {
         setLoading(false);
@@ -101,21 +104,19 @@ export function useCardBuilder() {
     };
 
     fetchProfile();
-  }, [user, loadDraft]);
+  }, [user?.id, loadDraft]); // Dependency on ID, not the object reference
 
   // Save to localStorage whenever cardData changes
   useEffect(() => {
-    const key = `glow_bio_draft_${user?.id || 'guest'}`;
-    // Debounce slightly to avoid excessive writes? 
-    // LocalStorage is sync and fast for this size, but debounce is good practice.
-    // However, for "instant" feel on crash/close, immediate is better or short debounce.
-    // Let's do 500ms debounce.
+    const userId = user?.id;
+    const key = `glow_bio_draft_${userId || 'guest'}`;
+
     const timer = setTimeout(() => {
       localStorage.setItem(key, JSON.stringify(cardData));
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [cardData, user]);
+  }, [cardData, user?.id]);
 
   const saveProfile = async () => {
     if (!user) {
