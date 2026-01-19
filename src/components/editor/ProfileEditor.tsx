@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, User, Trash2 } from 'lucide-react';
 import { CardData } from '@/types/cardBuilder';
 
+import { ImageCropper } from './ImageCropper';
+import { toast } from 'sonner';
+
 interface ProfileEditorProps {
   data: Pick<CardData, 'name' | 'title' | 'bio' | 'profileImage' | 'coverImage'>;
   onUpdate: <K extends keyof CardData>(field: K, value: CardData[K]) => void;
@@ -15,30 +18,63 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorProps) {
   const [uploading, setUploading] = React.useState(false);
+  const [cropperState, setCropperState] = React.useState<{
+    image: string;
+    aspect: number;
+    type: 'profile' | 'cover';
+  } | null>(null);
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
     const file = e.target.files?.[0];
     if (file) {
-      // Show preview immediately using FileReader for better UX
       const reader = new FileReader();
       reader.onload = (event) => {
-        onImageUpload(event.target?.result as string);
+        setCropperState({
+          image: event.target?.result as string,
+          aspect: type === 'cover' ? 3 / 1 : 1 / 1,
+          type,
+        });
       };
       reader.readAsDataURL(file);
+    }
+  };
 
-      // Upload to Supabase in background
-      setUploading(true);
-      try {
-        const { uploadImage } = await import('@/lib/storage');
-        const publicUrl = await uploadImage(file);
-        if (publicUrl) {
-          onImageUpload(publicUrl);
-        }
-      } catch (error) {
-        console.error('Upload failed', error);
-      } finally {
-        setUploading(false);
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    const type = cropperState?.type;
+    setCropperState(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result as string;
+      if (type === 'profile') {
+        onImageUpload(url);
+      } else {
+        onUpdate('coverImage', url);
       }
+    };
+    reader.readAsDataURL(croppedBlob);
+
+    // Upload to Supabase
+    setUploading(true);
+    try {
+      const file = new File([croppedBlob], `${type}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const { uploadImage } = await import('@/lib/storage');
+      const publicUrl = await uploadImage(file);
+
+      if (publicUrl) {
+        if (type === 'profile') {
+          onImageUpload(publicUrl);
+        } else {
+          onUpdate('coverImage', publicUrl);
+        }
+        toast.success(`${type === 'cover' ? 'Cover' : 'Profile'} photo updated!`);
+      }
+    } catch (error) {
+      console.error('Upload failed', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -48,9 +84,19 @@ export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorPr
 
   return (
     <div className="space-y-6">
+      {cropperState && (
+        <ImageCropper
+          open={!!cropperState}
+          image={cropperState.image}
+          aspect={cropperState.aspect}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setCropperState(null)}
+        />
+      )}
+
       {/* Cover Photo */}
       <div className="space-y-3">
-        <Label>Cover Photo</Label>
+        <Label>Cover Photo (3:1 Recommended)</Label>
         <div className="relative group rounded-xl overflow-hidden aspect-[3/1] bg-muted border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 transition-colors">
           {data.coverImage ? (
             <img src={data.coverImage} alt="Cover" className="w-full h-full object-cover" />
@@ -62,30 +108,13 @@ export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorPr
           )}
 
           <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-medium text-sm">
-            Change Cover
+            {uploading && cropperState?.type === 'cover' ? 'Uploading...' : 'Change Cover'}
             <input
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  // For immediate preview
-                  const reader = new FileReader();
-                  reader.onload = (ev) => onUpdate('coverImage', ev.target?.result as string);
-                  reader.readAsDataURL(file);
-
-                  // Upload (reuse logic or new handler if passed)
-                  // Ideally we lift the upload logic up or pass a specific handler, 
-                  // but for now reusing the quick preview pattern. 
-                  // For persistent storage, we'd use the same uploadImage utility.
-                  try {
-                    const { uploadImage } = await import('@/lib/storage');
-                    const publicUrl = await uploadImage(file);
-                    if (publicUrl) onUpdate('coverImage', publicUrl);
-                  } catch (err) { console.error(err); }
-                }
-              }}
+              onChange={(e) => handleImageSelect(e, 'cover')}
+              disabled={uploading}
             />
           </label>
 
@@ -124,13 +153,16 @@ export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorPr
             id="profile-upload"
             type="file"
             accept="image/*"
-            onChange={handleImageChange}
+            onChange={(e) => handleImageSelect(e, 'profile')}
             className="hidden"
+            disabled={uploading}
           />
         </div>
         <div className="flex-1 space-y-1">
           <p className="text-sm font-medium">Profile Photo</p>
-          <p className="text-xs text-muted-foreground">Click to upload or drag and drop</p>
+          <p className="text-xs text-muted-foreground">
+            {uploading && cropperState?.type === 'profile' ? 'Uploading...' : 'Click to upload or drag and drop'}
+          </p>
           {data.profileImage && (
             <Button
               variant="ghost"
