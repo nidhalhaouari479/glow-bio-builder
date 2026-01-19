@@ -561,14 +561,15 @@ export function CardPreview({ data, isMobile = false }: CardPreviewProps) {
               >
                 {/* Cover Photo */}
                 {data.coverImage && (
-                  <div className="absolute top-0 left-0 right-0 h-40 overflow-hidden -mx-6 -mt-6 z-0">
+                  <div className="absolute top-0 left-0 right-0 aspect-[3/1] overflow-hidden -mx-6 -mt-6 z-0">
                     <img src={data.coverImage} alt="Cover" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
                   </div>
                 )}
 
                 {/* Spacer for Cover Photo */}
-                {data.coverImage && <div className="h-10" />}
+                {data.coverImage && <div className="aspect-[3/1] h-0 -mx-6 -mt-6 mb-6" />}
+
 
                 <div className="relative inline-block z-10">
                   <div

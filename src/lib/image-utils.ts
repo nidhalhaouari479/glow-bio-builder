@@ -10,7 +10,7 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
 export async function getCroppedImg(
     imageSrc: string,
     pixelCrop: { x: number; y: number; width: number; height: number },
-    rotation = 0
+    targetSize?: { width: number; height: number }
 ): Promise<Blob | null> {
     const image = await createImage(imageSrc);
     const canvas = document.createElement('canvas');
@@ -20,32 +20,29 @@ export async function getCroppedImg(
         return null;
     }
 
-    // set canvas size to match the image size
-    canvas.width = image.width;
-    canvas.height = image.height;
+    // Set canvas size to the target size or the crop size
+    canvas.width = targetSize?.width || pixelCrop.width;
+    canvas.height = targetSize?.height || pixelCrop.height;
 
-    // draw image
-    ctx.drawImage(image, 0, 0);
-
-    // extracted the cropped image
-    const data = ctx.getImageData(
+    // Draw the cropped portion of the source image onto the canvas, scaled to target size
+    ctx.drawImage(
+        image,
         pixelCrop.x,
         pixelCrop.y,
         pixelCrop.width,
-        pixelCrop.height
+        pixelCrop.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height
     );
 
-    // set canvas width to final desired crop size - this will clear existing context
-    canvas.width = pixelCrop.width;
-    canvas.height = pixelCrop.height;
-
-    // paste generated rotate image with correct offsets for x,y crop
-    ctx.putImageData(data, 0, 0);
-
-    // as a blob
+    // Return as a blob
     return new Promise((resolve) => {
         canvas.toBlob((file) => {
             resolve(file);
-        }, 'image/jpeg');
+        }, 'image/jpeg', 0.9);
     });
 }
+
+

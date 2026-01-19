@@ -89,6 +89,7 @@ export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorPr
           open={!!cropperState}
           image={cropperState.image}
           aspect={cropperState.aspect}
+          targetSize={cropperState.type === 'cover' ? { width: 1200, height: 400 } : { width: 400, height: 400 }}
           onCropComplete={handleCropComplete}
           onCancel={() => setCropperState(null)}
         />
@@ -96,8 +97,9 @@ export function ProfileEditor({ data, onUpdate, onImageUpload }: ProfileEditorPr
 
       {/* Cover Photo */}
       <div className="space-y-3">
-        <Label>Cover Photo (3:1 Recommended)</Label>
+        <Label>Cover Photo (Required: 1200x400)</Label>
         <div className="relative group rounded-xl overflow-hidden aspect-[3/1] bg-muted border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 transition-colors">
+
           {data.coverImage ? (
             <img src={data.coverImage} alt="Cover" className="w-full h-full object-cover" />
           ) : (

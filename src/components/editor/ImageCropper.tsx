@@ -17,9 +17,10 @@ interface ImageCropperProps {
     onCropComplete: (croppedImage: Blob) => void;
     onCancel: () => void;
     open: boolean;
+    targetSize?: { width: number; height: number };
 }
 
-export function ImageCropper({ image, aspect, onCropComplete, onCancel, open }: ImageCropperProps) {
+export function ImageCropper({ image, aspect, onCropComplete, onCancel, open, targetSize }: ImageCropperProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -38,7 +39,7 @@ export function ImageCropper({ image, aspect, onCropComplete, onCancel, open }: 
 
     const handleCrop = async () => {
         try {
-            const croppedImage = await getCroppedImg(image, croppedAreaPixels);
+            const croppedImage = await getCroppedImg(image, croppedAreaPixels, targetSize);
             if (croppedImage) {
                 onCropComplete(croppedImage);
             }
@@ -46,6 +47,7 @@ export function ImageCropper({ image, aspect, onCropComplete, onCancel, open }: 
             console.error(e);
         }
     };
+
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
